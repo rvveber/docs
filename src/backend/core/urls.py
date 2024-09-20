@@ -52,6 +52,10 @@ urlpatterns = [
                     r"^templates/(?P<resource_id>[0-9a-z-]*)/",
                     include(template_related_router.urls),
                 ),
+                re_path(
+                    r"ai",
+                    viewsets.AIViewSet.as_view({"post": "create"}),
+                ),
             ]
         ),
     ),
