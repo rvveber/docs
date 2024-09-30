@@ -142,19 +142,24 @@ const AIMenuItem = ({ action, children, icon }: AIMenuItemProps) => {
     }
 
     const markdown = await editor.blocksToMarkdownLossy(selectedBlocks);
-    const responseAI = await requestAI({
-      text: markdown,
-      action,
-    });
 
-    if (!responseAI.answer) {
-      return;
+    try {
+      const responseAI = await requestAI({
+        text: markdown,
+        action,
+      });
+
+      if (!responseAI.answer) {
+        return;
+      }
+
+      const blockMarkdown = await editor.tryParseMarkdownToBlocks(
+        responseAI.answer,
+      );
+      editor.replaceBlocks(selectedBlocks, blockMarkdown);
+    } catch (error) {
+      console.error(error);
     }
-
-    const blockMarkdown = await editor.tryParseMarkdownToBlocks(
-      responseAI.answer,
-    );
-    editor.replaceBlocks(selectedBlocks, blockMarkdown);
   }, [editor, requestAI, action]);
 
   if (!Components) {
