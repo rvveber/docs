@@ -1,6 +1,5 @@
 """API endpoints"""
 
-import json
 import os
 import re
 import uuid
@@ -19,7 +18,6 @@ from django.db.models import (
 from django.http import Http404
 
 from botocore.exceptions import ClientError
-from openai import OpenAI
 from rest_framework import (
     decorators,
     exceptions,
@@ -34,6 +32,7 @@ from rest_framework import (
 )
 
 from core import models
+from core.services.ai_services import AIService
 
 from . import permissions, serializers, utils
 
@@ -458,10 +457,7 @@ class DocumentViewSet(
         serializer = serializers.LinkDocumentSerializer(
             document, data=request.data, partial=True
         )
-        if not serializer.is_valid():
-            return drf_response.Response(
-                serializer.errors, status=status.HTTP_400_BAD_REQUEST
-            )
+        serializer.is_valid(raise_exception=True)
 
         serializer.save()
         return drf_response.Response(serializer.data, status=status.HTTP_200_OK)
@@ -474,10 +470,8 @@ class DocumentViewSet(
 
         # Validate metadata in payload
         serializer = serializers.FileUploadSerializer(data=request.data)
-        if not serializer.is_valid():
-            return drf_response.Response(
-                serializer.errors, status=status.HTTP_400_BAD_REQUEST
-            )
+        serializer.is_valid(raise_exception=True)
+
         # Extract the file extension from the original filename
         file = serializer.validated_data["file"]
         extension = os.path.splitext(file.name)[1]
@@ -532,6 +526,63 @@ class DocumentViewSet(
         # Generate authorization headers and return an authorization to proceed with the request
         request = utils.generate_s3_authorization_headers(f"{pk:s}/{attachment_key:s}")
         return drf_response.Response("authorized", headers=request.headers, status=200)
+
+    @decorators.action(
+        detail=True,
+        methods=["post"],
+        name="Apply a transformation action on a piece of text with AI",
+        url_path="ai-transform",
+        throttle_classes=[utils.AIDocumentRateThrottle, utils.AIUserRateThrottle],
+    )
+    def ai_transform(self, request, *args, **kwargs):
+        """
+        POST /api/v1.0/documents/<resource_id>/ai-transform
+        with expected data:
+        - text: str
+        - action: str [prompt, correct, rephrase, summarize]
+        Return JSON response with the processed text.
+        """
+        # Check permissions first
+        self.get_object()
+
+        serializer = serializers.AITransformSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        text = serializer.validated_data["text"]
+        action = serializer.validated_data["action"]
+
+        response = AIService().transform(text, action)
+
+        return drf_response.Response(response, status=status.HTTP_200_OK)
+
+    @decorators.action(
+        detail=True,
+        methods=["post"],
+        name="Translate a piece of text with AI",
+        serializer_class=serializers.AITranslateSerializer,
+        url_path="ai-translate",
+        throttle_classes=[utils.AIDocumentRateThrottle, utils.AIUserRateThrottle],
+    )
+    def ai_translate(self, request, *args, **kwargs):
+        """
+        POST /api/v1.0/documents/<resource_id>/ai-translate
+        with expected data:
+        - text: str
+        - language: str [settings.LANGUAGES]
+        Return JSON response with the translated text.
+        """
+        # Check permissions first
+        self.get_object()
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        text = serializer.validated_data["text"]
+        language = serializer.validated_data["language"]
+
+        response = AIService().translate(text, language)
+
+        return drf_response.Response(response, status=status.HTTP_200_OK)
 
 
 class DocumentAccessViewSet(
@@ -783,125 +834,3 @@ class InvitationViewset(
         invitation.document.email_invitation(
             language, invitation.email, invitation.role, self.request.user.email
         )
-
-
-class AIViewSet(viewsets.ViewSet):
-    """API ViewSet for handling AI tasks"""
-
-    permission_classes = [permissions.IsAuthenticated]
-
-    def create(self, request):
-        """
-        POST /api/v1.0/ai/ with expected data:
-        - text: str
-        - action: str [prompt, correct, rephrase, summarize,
-            translate_en, translate_de, translate_fr]
-        Return JSON response with the processed text.
-        """
-        if not request.user.is_authenticated:
-            raise exceptions.NotAuthenticated()
-
-        if (
-            settings.AI_BASE_URL is None
-            or settings.AI_API_KEY is None
-            or settings.AI_MODEL is None
-        ):
-            raise exceptions.ValidationError({"error": "AI configuration not set"})
-
-        action = request.data.get("action")
-        text = request.data.get("text")
-
-        action_configs = {
-            "prompt": {
-                "system_content": (
-                    "Answer the prompt in markdown format. Return JSON: "
-                    '{"answer": "Your markdown answer"}.'
-                    "Do not provide any other information."
-                ),
-                "response_key": "answer",
-            },
-            "correct": {
-                "system_content": (
-                    "Correct grammar and spelling of the markdown text, "
-                    "preserving language and markdown formatting. "
-                    'Return JSON: {"answer": "your corrected markdown text"}.'
-                    "Do not provide any other information."
-                ),
-                "response_key": "answer",
-            },
-            "rephrase": {
-                "system_content": (
-                    "Rephrase the given markdown text, "
-                    "preserving language and markdown formatting. "
-                    'Return JSON: {"answer": "your rephrased markdown text"}.'
-                    "Do not provide any other information."
-                ),
-                "response_key": "answer",
-            },
-            "summarize": {
-                "system_content": (
-                    "Summarize the markdown text, preserving language and markdown formatting. "
-                    'Return JSON: {"answer": "your markdown summary"}.'
-                    "Do not provide any other information."
-                ),
-                "response_key": "answer",
-            },
-            "translate_en": {
-                "system_content": (
-                    "Translate the markdown text to English, preserving markdown formatting. "
-                    'Return JSON: {"answer": "Your translated markdown text in English"}.'
-                    "Do not provide any other information."
-                ),
-                "response_key": "answer",
-            },
-            "translate_de": {
-                "system_content": (
-                    "Translate the markdown text to German, preserving markdown formatting. "
-                    'Return JSON: {"answer": "Your translated markdown text in German"}.'
-                    "Do not provide any other information."
-                ),
-                "response_key": "answer",
-            },
-            "translate_fr": {
-                "system_content": (
-                    "Translate the markdown text to French, preserving markdown formatting. "
-                    'Return JSON: {"answer": "Your translated markdown text in French"}.'
-                    "Do not provide any other information."
-                ),
-                "response_key": "answer",
-            },
-        }
-
-        if action not in action_configs:
-            raise exceptions.ValidationError({"error": "Invalid action"})
-
-        config = action_configs[action]
-
-        try:
-            client = OpenAI(base_url=settings.AI_BASE_URL, api_key=settings.AI_API_KEY)
-            response = client.chat.completions.create(
-                model=settings.AI_MODEL,
-                response_format={"type": "json_object"},
-                messages=[
-                    {"role": "system", "content": config["system_content"]},
-                    {"role": "user", "content": json.dumps({"mardown_input": text})},
-                ],
-            )
-
-            corrected_response = json.loads(response.choices[0].message.content)
-
-            if "answer" not in corrected_response:
-                raise exceptions.ValidationError("Invalid response format")
-
-            return drf_response.Response(corrected_response, status=status.HTTP_200_OK)
-
-        except exceptions.ValidationError as e:
-            return drf_response.Response(
-                {"error": e.detail}, status=status.HTTP_400_BAD_REQUEST
-            )
-
-        except exceptions.APIException as e:
-            return drf_response.Response(
-                {"error": f"Error processing AI response: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
