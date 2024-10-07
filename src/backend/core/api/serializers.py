@@ -6,6 +6,7 @@ from django.conf import settings
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
+import magic
 from rest_framework import exceptions, serializers
 
 from core import models
@@ -218,15 +219,35 @@ class FileUploadSerializer(serializers.Serializer):
                 f"File size exceeds the maximum limit of {max_size:d} MB."
             )
 
-        # Validate file type
-        mime_type, _ = mimetypes.guess_type(file.name)
-        if mime_type not in settings.DOCUMENT_IMAGE_ALLOWED_MIME_TYPES:
-            mime_types = ", ".join(settings.DOCUMENT_IMAGE_ALLOWED_MIME_TYPES)
-            raise serializers.ValidationError(
-                f"File type '{mime_type:s}' is not allowed. Allowed types are: {mime_types:s}"
-            )
+        extension = file.name.rpartition(".")[-1] if "." in file.name else None
+
+        # Read the first few bytes to determine the MIME type accurately
+        mime = magic.Magic(mime=True)
+        magic_mime_type = mime.from_buffer(file.read(1024))
+        file.seek(0)  # Reset file pointer to the beginning after reading
+
+        if magic_mime_type in settings.DOCUMENT_UNSAFE_MIME_TYPES:
+            self.context["is_unsafe"] = True
+
+        extension_mime_type, _ = mimetypes.guess_type(file.name)
+
+        # Try guessing a coherent extension from the mimetype
+        if extension_mime_type != magic_mime_type:
+            if guessed_ext := mimetypes.guess_extension(magic_mime_type):
+                extension = guessed_ext[1:]
+
+        if extension is None:
+            raise serializers.ValidationError("Could not determine file extension.")
+
+        self.context["expected_extension"] = extension
 
         return file
+
+    def validate(self, attrs):
+        """Override validate to add the computed extension to validated_data."""
+        attrs["expected_extension"] = self.context.get("expected_extension")
+        attrs["is_unsafe"] = self.context.get("is_unsafe")
+        return attrs
 
 
 class TemplateSerializer(BaseResourceSerializer):
