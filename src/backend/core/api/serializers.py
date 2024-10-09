@@ -226,8 +226,9 @@ class FileUploadSerializer(serializers.Serializer):
         magic_mime_type = mime.from_buffer(file.read(1024))
         file.seek(0)  # Reset file pointer to the beginning after reading
 
-        if magic_mime_type in settings.DOCUMENT_UNSAFE_MIME_TYPES:
-            self.context["is_unsafe"] = True
+        self.context["is_unsafe"] = (
+            magic_mime_type in settings.DOCUMENT_UNSAFE_MIME_TYPES
+        )
 
         extension_mime_type, _ = mimetypes.guess_type(file.name)
 
@@ -245,8 +246,8 @@ class FileUploadSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         """Override validate to add the computed extension to validated_data."""
-        attrs["expected_extension"] = self.context.get("expected_extension")
-        attrs["is_unsafe"] = self.context.get("is_unsafe")
+        attrs["expected_extension"] = self.context["expected_extension"]
+        attrs["is_unsafe"] = self.context["is_unsafe"]
         return attrs
 
 

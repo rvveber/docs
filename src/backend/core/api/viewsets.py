@@ -483,7 +483,7 @@ class DocumentViewSet(
 
         # Prepare metadata for storage
         metadata = {"Metadata": {"owner": str(request.user.id)}}
-        if serializer.validated_data.get("is_unsafe", False):
+        if serializer.validated_data["is_unsafe"]:
             metadata["Metadata"]["is_unsafe"] = "true"
 
         file = serializer.validated_data["file"]
