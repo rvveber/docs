@@ -364,7 +364,7 @@ def test_models_documents__email_invitation__success():
     assert len(mail.outbox) == 0
 
     document.email_invitation(
-        "en", "guest@example.com", models.RoleChoices.EDITOR, "sender@example.com"
+        "en", "guest@example.com", models.RoleChoices.EDITOR, "Test Sender", "sender@example.com"
     )
 
     # pylint: disable-next=no-member
@@ -377,7 +377,7 @@ def test_models_documents__email_invitation__success():
     email_content = " ".join(email.body.split())
 
     assert (
-        f"sender@example.com invited you as an editor on the following document : {document.title}"
+        f"Test Sender (sender@example.com) invited you as an editor on the following document : {document.title}"
         in email_content
     )
     assert f"docs/{document.id}/" in email_content
@@ -393,7 +393,7 @@ def test_models_documents__email_invitation__success_fr():
     assert len(mail.outbox) == 0
 
     document.email_invitation(
-        "fr-fr", "guest2@example.com", models.RoleChoices.OWNER, "sender2@example.com"
+        "fr-fr", "guest2@example.com", models.RoleChoices.OWNER, "Test Sender2", "sender2@example.com"
     )
 
     # pylint: disable-next=no-member
@@ -406,7 +406,7 @@ def test_models_documents__email_invitation__success_fr():
     email_content = " ".join(email.body.split())
 
     assert (
-        f"sender2@example.com vous a invité en tant que propriétaire "
+        f"Test Sender2 (sender2@example.com) vous a invité en tant que propriétaire "
         f"sur le document suivant : {document.title}" in email_content
     )
     assert f"docs/{document.id}/" in email_content
@@ -425,7 +425,7 @@ def test_models_documents__email_invitation__failed(mock_logger, _mock_send_mail
     assert len(mail.outbox) == 0
 
     document.email_invitation(
-        "en", "guest3@example.com", models.RoleChoices.ADMIN, "sender3@example.com"
+        "en", "guest3@example.com", models.RoleChoices.ADMIN, "sender3", "sender3@example.com"
     )
 
     # No email has been sent

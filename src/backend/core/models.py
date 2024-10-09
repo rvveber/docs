@@ -520,7 +520,7 @@ class Document(BaseModel):
             "versions_retrieve": can_get_versions,
         }
 
-    def email_invitation(self, language, email, role, username_sender):
+    def email_invitation(self, language, email, role, username_sender, email_sender):
         """Send email invitation."""
 
         domain = Site.objects.get_current().domain
@@ -537,6 +537,7 @@ class Document(BaseModel):
                     "document": self,
                     "link": f"{domain}/docs/{self.id}/",
                     "username": username_sender,
+                    "email": email_sender,
                     "role": RoleChoices(role).label.lower(),
                 }
                 msg_html = render_to_string("mail/html/invitation.html", template_vars)

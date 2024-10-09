@@ -31,7 +31,7 @@
           <!-- Main Message -->
           <mj-text>
             {% blocktrans %}
-              {{username}} invited you as an {{role}} on the following document : 
+              {{username}} {{email}} invited you as an {{role}} on the following document : 
             {% endblocktrans %}
             <a href="{{link}}">{{document.title}}</a>
           </mj-text>

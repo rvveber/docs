@@ -576,8 +576,15 @@ class DocumentAccessViewSet(
         """Add a new access to the document and send an email to the new added user."""
         access = serializer.save()
         language = self.request.headers.get("Content-Language", "en-us")
+        
+        username_sender = self.request.user.full_name
+        email_sender = self.request.user.email
+        if(not username_sender):
+            username_sender = self.request.user.email
+            email_sender = ""
+
         access.document.email_invitation(
-            language, access.user.email, access.role, self.request.user.email
+            language, access.user.email, access.role, username_sender, email_sender
         )
 
 
@@ -778,6 +785,13 @@ class InvitationViewset(
         invitation = serializer.save()
 
         language = self.request.headers.get("Content-Language", "en-us")
+
+        username_sender = self.request.user.full_name
+        email_sender = self.request.user.email
+        if(not username_sender):
+            username_sender = self.request.user.email
+            email_sender = ""
+
         invitation.document.email_invitation(
-            language, invitation.email, invitation.role, self.request.user.email
+            language, invitation.email, invitation.role, username_sender, email_sender
         )
