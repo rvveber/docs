@@ -22,6 +22,7 @@ from rest_framework import (
     decorators,
     exceptions,
     filters,
+    metadata,
     mixins,
     pagination,
     status,
@@ -31,7 +32,7 @@ from rest_framework import (
     response as drf_response,
 )
 
-from core import models
+from core import enums, models
 from core.services.ai_services import AIService
 
 from . import permissions, serializers, utils
@@ -304,6 +305,23 @@ class ResourceAccessViewsetMixin:
         serializer.save()
 
 
+class DocumentMetadata(metadata.SimpleMetadata):
+    """Custom metadata class to add information"""
+
+    def determine_metadata(self, request, view):
+        """Add language choices only for the list endpoint."""
+        simple_metadata = super().determine_metadata(request, view)
+
+        if request.path.endswith("/documents/"):
+            simple_metadata["actions"]["POST"]["language"] = {
+                "choices": [
+                    {"value": code, "display_name": name}
+                    for code, name in enums.ALL_LANGUAGES.items()
+                ]
+            }
+        return simple_metadata
+
+
 class DocumentViewSet(
     ResourceViewsetMixin,
     mixins.CreateModelMixin,
@@ -321,6 +339,7 @@ class DocumentViewSet(
     resource_field_name = "document"
     queryset = models.Document.objects.all()
     ordering = ["-updated_at"]
+    metadata_class = DocumentMetadata
 
     def list(self, request, *args, **kwargs):
         """Restrict resources returned by the list endpoint"""

@@ -2,7 +2,6 @@
 Test AI transform API endpoint for users in impress's core app.
 """
 
-import json
 from unittest.mock import MagicMock, patch
 
 from django.core.cache import cache
@@ -57,9 +56,9 @@ def test_api_documents_ai_transform_anonymous_success(mock_create):
     """
     document = factories.DocumentFactory(link_reach="public", link_role="editor")
 
-    answer = {"answer": "Salut"}
+    answer = '{"answer": "Salut"}'
     mock_create.return_value = MagicMock(
-        choices=[MagicMock(message=MagicMock(content=json.dumps(answer)))]
+        choices=[MagicMock(message=MagicMock(content=answer))]
     )
 
     url = f"/api/v1.0/documents/{document.id!s}/ai-transform/"
@@ -134,9 +133,9 @@ def test_api_documents_ai_transform_authenticated_success(mock_create, reach, ro
 
     document = factories.DocumentFactory(link_reach=reach, link_role=role)
 
-    answer = {"answer": "Salut"}
+    answer = '{"answer": "Salut"}'
     mock_create.return_value = MagicMock(
-        choices=[MagicMock(message=MagicMock(content=json.dumps(answer)))]
+        choices=[MagicMock(message=MagicMock(content=answer))]
     )
 
     url = f"/api/v1.0/documents/{document.id!s}/ai-transform/"
@@ -209,9 +208,9 @@ def test_api_documents_ai_transform_success(mock_create, via, role, mock_user_te
             document=document, team="lasuite", role=role
         )
 
-    answer = {"answer": "Salut"}
+    answer = '{"answer": "Salut"}'
     mock_create.return_value = MagicMock(
-        choices=[MagicMock(message=MagicMock(content=json.dumps(answer)))]
+        choices=[MagicMock(message=MagicMock(content=answer))]
     )
 
     url = f"/api/v1.0/documents/{document.id!s}/ai-transform/"
@@ -277,9 +276,9 @@ def test_api_documents_ai_transform_throttling_document(mock_create):
     client = APIClient()
     document = factories.DocumentFactory(link_reach="public", link_role="editor")
 
-    answer = {"answer": "Salut"}
+    answer = '{"answer": "Salut"}'
     mock_create.return_value = MagicMock(
-        choices=[MagicMock(message=MagicMock(content=json.dumps(answer)))]
+        choices=[MagicMock(message=MagicMock(content=answer))]
     )
 
     url = f"/api/v1.0/documents/{document.id!s}/ai-transform/"
@@ -311,9 +310,9 @@ def test_api_documents_ai_transform_throttling_user(mock_create):
     client = APIClient()
     client.force_login(user)
 
-    answer = {"answer": "Salut"}
+    answer = '{"answer": "Salut"}'
     mock_create.return_value = MagicMock(
-        choices=[MagicMock(message=MagicMock(content=json.dumps(answer)))]
+        choices=[MagicMock(message=MagicMock(content=answer))]
     )
 
     for _ in range(3):

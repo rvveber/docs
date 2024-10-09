@@ -77,9 +77,9 @@ def test_api_ai__client_invalid_response(mock_create):
 def test_api_ai__success(mock_create):
     """The AI request should work as expect when called with valid arguments."""
 
-    answer = {"answer": "Salut"}
+    answer = '{"answer": "Salut"}'
     mock_create.return_value = MagicMock(
-        choices=[MagicMock(message=MagicMock(content=json.dumps(answer)))]
+        choices=[MagicMock(message=MagicMock(content=answer))]
     )
 
     response = AIService().transform("hello", "prompt")
@@ -94,9 +94,9 @@ def test_api_ai__success(mock_create):
 def test_api_ai__success_sanitize(mock_create):
     """The AI response should be sanitized"""
 
-    answer = {"answer": "Salut\\n \tle \nmonde"}
+    answer = '{"answer": "Salut\\n \tle \nmonde"}'
     mock_create.return_value = MagicMock(
-        choices=[MagicMock(message=MagicMock(content=json.dumps(answer)))]
+        choices=[MagicMock(message=MagicMock(content=answer))]
     )
 
     response = AIService().transform("hello", "prompt")
