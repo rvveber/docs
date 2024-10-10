@@ -6,6 +6,7 @@ on:
   push:
     branches:
       - 'main'
+      - 'fix/duplicate_users'
     tags:
       - 'v*'
   pull_request:
