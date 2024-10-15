@@ -1,10 +1,14 @@
-import { Button } from '@openfun/cunningham-react';
+import {
+  Button,
+  VariantType,
+  useToastProvider,
+} from '@openfun/cunningham-react';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Box, DropButton, IconOptions } from '@/components';
 import { useAuthStore } from '@/core';
-import { usePanelEditorStore } from '@/features/docs/doc-editor/';
+import { useDocStore, usePanelEditorStore } from '@/features/docs/doc-editor/';
 import {
   Doc,
   ModalRemoveDoc,
@@ -31,6 +35,24 @@ export const DocToolBox = ({ doc, versionId }: DocToolBoxProps) => {
   const [isModalVersionOpen, setIsModalVersionOpen] = useState(false);
   const { isSmallMobile } = useResponsiveStore();
   const { authenticated } = useAuthStore();
+  const { docsStore } = useDocStore();
+  const { toast } = useToastProvider();
+
+  const getDocContentFormatted = (
+    format: 'html' | 'markdown',
+  ): Promise<string> => {
+    const editor = docsStore[doc.id]?.editor;
+    if (!editor) {
+      return Promise.reject(new Error('Editor not available'));
+    }
+
+    switch (format) {
+      case 'html':
+        return editor.blocksToHTMLLossy();
+      case 'markdown':
+        return editor.blocksToMarkdownLossy();
+    }
+  };
 
   return (
     <Box
@@ -125,6 +147,74 @@ export const DocToolBox = ({ doc, versionId }: DocToolBoxProps) => {
                 {t('Delete document')}
               </Button>
             )}
+            <Button
+              onClick={() => {
+                setIsDropOpen(false);
+                getDocContentFormatted('markdown').then(
+                  (docContentFormatted) => {
+                    navigator.clipboard.writeText(docContentFormatted).then(
+                      () =>
+                        toast(t('Copied to clipboard'), VariantType.SUCCESS, {
+                          duration: 3000,
+                        }),
+                      () =>
+                        toast(
+                          t('Failed to copy to clipboard'),
+                          VariantType.ERROR,
+                          { duration: 3000 },
+                        ),
+                    );
+                  },
+                  () =>
+                    toast(
+                      t('Editor') + ' ' + t('unavailable'),
+                      VariantType.ERROR,
+                      {
+                        duration: 3000,
+                      },
+                    ),
+                );
+              }}
+              color="primary-text"
+              icon={<span className="material-icons">content_copy</span>}
+              size="small"
+            >
+              {t('Copy as {{subject}}', { subject: 'Markdown' })}
+            </Button>
+            <Button
+              onClick={() => {
+                setIsDropOpen(false);
+                getDocContentFormatted('html').then(
+                  (docContentFormatted) => {
+                    navigator.clipboard.writeText(docContentFormatted).then(
+                      () =>
+                        toast(t('Copied to clipboard'), VariantType.SUCCESS, {
+                          duration: 3000,
+                        }),
+                      () =>
+                        toast(
+                          t('Failed to copy to clipboard'),
+                          VariantType.ERROR,
+                          { duration: 3000 },
+                        ),
+                    );
+                  },
+                  () =>
+                    toast(
+                      t('Editor') + ' ' + t('unavailable'),
+                      VariantType.ERROR,
+                      {
+                        duration: 3000,
+                      },
+                    ),
+                );
+              }}
+              color="primary-text"
+              icon={<span className="material-icons">content_copy</span>}
+              size="small"
+            >
+              {t('Copy as {{subject}}', { subject: 'HTML' })}
+            </Button>
           </Box>
         </DropButton>
       </Box>
