@@ -33,6 +33,10 @@ from treebeard.mp_tree import MP_Node
 
 logger = getLogger(__name__)
 
+# Stable module-level constant for language choices to prevent repetitive migrations.
+LANGUAGE_CHOICES = getattr(
+    settings, "LANGUAGES"
+)
 
 def get_trashbin_cutoff():
     """
@@ -193,10 +197,12 @@ class User(AbstractBaseUser, BaseModel, auth_models.PermissionsMixin):
 
     language = models.CharField(
         max_length=10,
-        choices=lazy(lambda: settings.LANGUAGES, tuple)(),
-        default=settings.LANGUAGE_CODE,
+        choices=LANGUAGE_CHOICES,
+        default=None,
         verbose_name=_("language"),
         help_text=_("The language in which the user wants to see the interface."),
+        null=True,
+        blank=True,
     )
     timezone = TimeZoneField(
         choices_display="WITH_GMT_OFFSET",
