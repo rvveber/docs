@@ -7,7 +7,6 @@ export const CONFIG = {
   ENVIRONMENT: 'development',
   FRONTEND_CSS_URL: null,
   FRONTEND_HOMEPAGE_FEATURE_ENABLED: true,
-  FRONTEND_FOOTER_FEATURE_ENABLED: true,
   FRONTEND_THEME: 'default',
   MEDIA_BASE_URL: 'http://localhost:8083',
   LANGUAGES: [
@@ -20,6 +19,7 @@ export const CONFIG = {
   LANGUAGE_CODE: 'en-us',
   POSTHOG_KEY: {},
   SENTRY_DSN: null,
+  theme_customization: {}
 };
 
 export const keyCloakSignIn = async (

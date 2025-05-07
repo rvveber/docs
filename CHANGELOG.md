@@ -14,6 +14,10 @@ and this project adheres to
 - ✨ Add a custom callout block to the editor #892
 
 
+### Removed
+
+- 🔥(back) remove footer endpoint
+
 ## [3.2.1] - 2025-05-06
 
 ## Fixed
