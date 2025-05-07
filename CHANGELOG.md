@@ -8,9 +8,11 @@ and this project adheres to
 
 ## [Unreleased]
 
-## Added
+### Added
 
-✨ Add a custom callout block to the editor #892
+- ✨(back) allow theme customnization using a configuration file #948
+- ✨ Add a custom callout block to the editor #892
+
 
 ## [3.2.1] - 2025-05-06
 
